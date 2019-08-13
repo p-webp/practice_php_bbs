@@ -15,6 +15,7 @@ $file_handle = null;
 $split_data = null;
 $message = array();
 $message_array = array();
+$success_message = null;
 
 if(!empty($_POST['btn_submit'])){
 
@@ -31,6 +32,10 @@ if(!empty($_POST['btn_submit'])){
 
         //ファイルを閉じる
         fclose($file_handle);
+
+        //書き込み成功時のメッセージ
+        //ファイルへの書き込みがあった場合のみ値が代入される
+        $success_message = 'メッセージを書き込みました。';
     }
 }
 
@@ -292,6 +297,9 @@ article.reply::before {
 </head>
 <body>
 <h1>ひと言掲示板</h1>
+<?php if(!empty($success_message)): ?>
+    <p class="success_message"><?php echo $success_message; ?></p>
+<?php endif; ?>
 <form method="post">
     <div>
         <label for="view_name">表示名</label>
