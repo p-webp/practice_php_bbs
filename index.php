@@ -16,26 +16,40 @@ $split_data = null;
 $message = array();
 $message_array = array();
 $success_message = null;
+$error_message = array();
 
 if(!empty($_POST['btn_submit'])){
 
-    if($file_handle = fopen(FILENAME,"a")){
+    //表示名の入力チェック
+    if(empty($_POST['view_name'])){
+        $error_message[] = '表示名を入力してください。';
+    }
 
-        //書き込み日時を取得
-        $now_date = date("Y-m-d H:i:s");
+    //メッセージの入力チェック
+    if(empty($_POST['message'])){
+        $error_message[] = 'ひと言メッセージを入力してください。';
+    }
 
-        //書き込むデータを作成
-        $date = "'".$_POST['view_name']."','".$_POST['message']."','".$now_date."'\n";
+    if(empty($error_message)){
 
-        //書き込み
-        fwrite($file_handle,$data);
+        if($file_handle = fopen(FILENAME,"a")){
 
-        //ファイルを閉じる
-        fclose($file_handle);
+            //書き込み日時を取得
+            $now_date = date("Y-m-d H:i:s");
 
-        //書き込み成功時のメッセージ
-        //ファイルへの書き込みがあった場合のみ値が代入される
-        $success_message = 'メッセージを書き込みました。';
+            //書き込むデータを作成
+            $date = "'".$_POST['view_name']."','".$_POST['message']."','".$now_date."'\n";
+
+            //書き込み
+            fwrite($file_handle,$data);
+
+            //ファイルを閉じる
+            fclose($file_handle);
+
+            //書き込み成功時のメッセージ
+            //ファイルへの書き込みがあった場合のみ値が代入される
+            $success_message = 'メッセージを書き込みました。';
+        }
     }
 }
 
@@ -299,6 +313,13 @@ article.reply::before {
 <h1>ひと言掲示板</h1>
 <?php if(!empty($success_message)): ?>
     <p class="success_message"><?php echo $success_message; ?></p>
+<?php endif; ?>
+<?php if(!empty($error_message)):?>
+    <ul class="error_message">
+        <?php foreach($error_message as $value): ?>
+            <li>・<?php echo $value; ?></li>
+        <?php endforeach ;?>
+    </ul>
 <?php endif; ?>
 <form method="post">
     <div>
