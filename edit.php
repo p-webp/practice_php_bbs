@@ -10,93 +10,86 @@ define( 'DB_NAME','board');
 date_default_timezone_set('Asia/Tokyo');
 
 //変数の初期化
-$now_date = null;
-$data = null;
-$file_handle = null;
-$split_data = null;
-$message = array();
-$message_array = array();
-$success_message = null;
+$message_id = null;
+$mysql = null;
+$sql = null;
+$res = null;
 $error_message = array();
-$clean = array();
-
-if($_SERVER['REQUEST_METHOD']==='POST'){
-
-    header('Location:http://localhost/learning_php/index.php');
-
-}
+$message_data = array();
 
 session_start();
 
-if(!empty($_POST['btn_submit'])){
+//管理者としてログインしているか確認
+if( empty($_SESSION['admin_login']) || $_SESSION['admin_login'] !== true ){
 
-    //表示名の入力チェック
-    if(empty($_POST['view_name'])){
-        $error_message[] = '表示名を入力してください。';
-    } else {
-        $clean['view_name'] = htmlspecialchars($_POST['view_name'],ENT_QUOTES);
-
-        //セッションに表示名を保存
-        $_SESSION['view_name'] = $clean['view_name'];
-    }
-
-    //メッセージの入力チェック
-    if(empty($_POST['message'])){
-        $error_message[] = 'ひと言メッセージを入力してください。';
-    } else {
-        $clean['message'] = htmlspecialchars($_POST['message'],ENT_QUOTES);
-        $clean['message'] = preg_replace('/\\r\\n|\\n|\\r/', '<br>', $clean['message']);
-    }
-
-    if(empty($error_message)){
-
-        //データベースに接続
-        $mysqli = new mysqli(DB_HOST,DB_USER,DB_PASS,DB_NAME);
-
-        if( $mysqli->connect_errno ){
-            $error_message[] = '書き込みに失敗しました。エラー番号'.$mysqli->connect_errno.':'.$mysqli->connect_error;
-        } else {
-
-            //文字コード設定
-            $mysqli->set_charset('utf8');
-
-            //書き込み日時を取得
-            $now_date = date("Y-m-d H:i:s");
-
-            //データを登録するSQL作成
-            $sql = "INSERT INTO message (view_name, message, post_date) VALUES('$clean[view_name]','$clean[message]','$now_date')";
-
-            //データを登録
-            $res = $mysqli->query($sql);
-
-            if( $res ){
-                $success_message = 'メッセージを書き込みました。';
-            } else {
-                $error_message[] = '書き込みに失敗しました。';
-            }
-
-            //データベースの接続を閉じる
-            $mysqli->close();
-        }
-    }
+    //ログインページへリダイレクト
+    header("Location:./admin.php");
 }
 
-//データベースに接続
-$mysqli = new mysqli(DB_HOST,DB_USER,DB_PASS,DB_NAME);
+if( !empty($_GET['message_id']) && empty($_POST['message_id']) ){
 
-//接続エラーの確認
-if( $mysqli->connect_errno){
-    $error_message[] = 'データの読み込みに失敗しました。エラー番号'.$mysqli->connect_errno.':'.$mysqli->connect_error;
-} else {
+    $message_id = (int)htmlspecialchars($_GET['message_id'],ENT_QUOTES);
 
-    $sql = "SELECT view_name,message,post_date FROM message ORDER BY post_date DESC";
-    $res = $mysqli->query($sql);
+    //データベースに接続
+    $mysqli = new mysqli( DB_HOST,DB_USER,DB_PASS,DB_NAME );
 
-    if( $res ){
-        $message_array = $res->fetch_all(MYSQLI_ASSOC);
+    //接続エラーの確認
+    if( $mysqli->connect_errno ){
+        $error_message[] = 'データベースの接続に失敗しました。エラー番号' . $mysqli->connect_errno . ':' . $mysqli->connect_error;
+    } else {
+
+        //データの読み込み
+        $sql = "SELECT * FROM message WHERE id = $message_id";
+        $res = $mysqli->query($sql);
+
+        if( $res ){
+            $message_data = $res->fetch_assoc();
+        } else {
+
+            //データが読み込めなかったら一覧に戻る
+            header("Location:./admin.php");
+        }
+
+        $mysqli->close();
+    }
+} elseif( !empty($_POST['message_id']) ){
+
+    $message_id = (int)htmlspecialchars($_POST['message_id'],ENT_QUOTES);
+
+    if( empty($_POST['view_name']) ){
+        $error_message[] = '表示名を入力してください。';
+    } else {
+        $message_data['view_name'] = htmlspecialchars($_POST['view_name'],ENT_QUOTES);
     }
 
-    $mysqli->close();
+    if( empty($_POST['message']) ){
+        $error_message[] = 'メッセージを入力してください。';
+    } else {
+        $message_data['message'] = htmlspecialchars($_POST['message'],ENT_QUOTES);
+
+    }
+
+    if( empty($error_message) ){
+
+        //データベースに接続
+        $mysqli = new mysqli( DB_HOST,DB_USER,DB_PASS,DB_NAME );
+
+        //接続エラーの確認
+        if( $mysqli->connect_errno ){
+            $error_message[] = 'データベースの接続に失敗しました。エラー番号' . $mysqli->connect_errno . ':' . $mysqli->connect_error;
+        } else {
+
+            //データ更新のSQLクエリ
+            $sql = "UPDATE message set view_name = '$message_data[view_name]',message= '$message_data[message]' WHERE id = $message_id";
+            $res = $mysqli->query($sql);
+        }
+        $mysqli->close();
+
+        //更新に成功したら一覧に戻る
+        if( $res ){
+            header("Location: ./admin.php");
+        }
+    }
 }
 
 ?>
@@ -105,7 +98,7 @@ if( $mysqli->connect_errno){
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>ひと言掲示板</title>
+<title>ひと言掲示板 管理ページ（投稿の編集）</title>
 <style>
 /*------------------------------
  Reset Style
@@ -279,6 +272,22 @@ hr {
     font-size: 86%;
     line-height: 1.6em;
 }
+
+.btn_cancel {
+	display: inline-block;
+	margin-right: 10px;
+	padding: 10px 20px;
+	color: #555;
+	font-size: 86%;
+	border-radius: 5px;
+	border: 1px solid #999;
+}
+.btn_cancel:hover {
+	color: #999;
+	border-color: #999;
+	text-decoration: none;
+}
+
 /*-----------------------------------
 掲示板エリア
 -----------------------------------*/
@@ -340,10 +349,7 @@ article.reply::before {
 </style>
 </head>
 <body>
-<h1>ひと言掲示板</h1>
-<?php if(!empty($success_message)): ?>
-    <p class="success_message"><?php echo $success_message; ?></p>
-<?php endif; ?>
+<h1>ひと言掲示板 管理ページ（投稿の編集）</h1>
 <?php if(!empty($error_message)):?>
     <ul class="error_message">
         <?php foreach($error_message as $value): ?>
@@ -354,27 +360,15 @@ article.reply::before {
 <form method="post">
     <div>
         <label for="view_name">表示名</label>
-        <input id="view_name" type="text" name="view_name" value="<?php if( !empty($_SESSION['view_name'])){ echo $_SESSION['view_name'];}?>">
+        <input id="view_name" type="text" name="view_name" value="<?php if( !empty($message_data['view_name']) ){ echo $message_data['view_name']; } ?>">
     </div>
     <div>
         <label for="message">ひと言メッセージ</label>
-        <textarea id="message" name="message"></textarea>
+        <textarea id="message" name="message"><?php if( !empty($message_data['message']) ){ echo $message_data['message']; }?></textarea>
     </div>
-    <input type="submit" name="btn_submit" value="書き込む">
+    <a class="btn_cancel" href="admin.php">キャンセル</a>
+    <input type="submit" name="btn_submit" value="更新">
+    <input type="hidden" name="message_id" value="<?php echo $message_data['id']; ?>">
 </form>
-<hr>
-<section>
-<?php if(!empty($message_array)){?>
-<?php foreach($message_array as $value){?>
-<article>
-    <div class="info">
-        <h2><?php echo $value['view_name']; ?></h2>
-        <time><?php echo date('Y年m月d日 H:i',strtotime($value['post_date'])); ?></time>
-    </div>
-    <p><?php echo nl2br( $value['message'] ); ?></p>
-</article>
-<?php }?>
-<?php }?>
-</section>
 </body>
 </html>
