@@ -1,9 +1,11 @@
 <?php
 
-//メッセージを保存するファイルパスの設定
-//定数名の指定
-//定数名は通常の変数と見分けやすいように、アルファベットの大文字で指定する慣習がある
-define('FILENAME','./message.txt');
+//データベースの接続情報
+define( 'DB_HOST','localhost');
+define( 'DB_USER','root');
+define( 'DB_PASS','root');
+define( 'DB_NAME','board');
+
 
 //タイムゾーン設定
 date_default_timezone_set('Asia/Tokyo');
@@ -18,6 +20,12 @@ $message_array = array();
 $success_message = null;
 $error_message = array();
 $clean = array();
+
+if($_SERVER['REQUEST_METHOD']==='POST'){
+
+    header('Location:http://localhost/learning_php/index.php');
+
+}
 
 if(!empty($_POST['btn_submit'])){
 
@@ -39,30 +47,8 @@ if(!empty($_POST['btn_submit'])){
 
     if(empty($error_message)){
 
-        /*
-        if($file_handle = fopen(FILENAME,"a")){
-
-
-            //書き込み日時を取得
-            $now_date = date("Y-m-d H:i:s");
-
-            //書き込むデータを作成
-            $data = "'".$clean['view_name']."','".$clean['message']."','".$now_date."'\n";
-
-            //書き込み
-            fwrite($file_handle,$data);
-
-            //ファイルを閉じる
-            fclose($file_handle);
-
-            //書き込み成功時のメッセージ
-            //ファイルへの書き込みがあった場合のみ値が代入される
-            $success_message = 'メッセージを書き込みました。';
-        }
-        */
-
         //データベースに接続
-        $mysqli = new mysqli('localhost','root','root','board');
+        $mysqli = new mysqli(DB_HOST,DB_USER,DB_PASS,DB_NAME);
 
         if( $mysqli->connect_errno ){
             $error_message[] = '書き込みに失敗しました。エラー番号'.$mysqli->connect_errno.':'.$mysqli->connect_error;
@@ -92,20 +78,22 @@ if(!empty($_POST['btn_submit'])){
     }
 }
 
-if($file_handle = fopen(FILENAME,'r')){
-    while($data = fgets($file_handle)){
-        $split_data = preg_split('/\'/',$data);
+//データベースに接続
+$mysqli = new mysqli(DB_HOST,DB_USER,DB_PASS,DB_NAME);
 
-        $message = array(
-            'view_name' => $split_data[1],
-            'message' => $split_data[3],
-            'post_date' => $split_data[5]
-        );
-        array_unshift($message_array,$message);
+//接続エラーの確認
+if( $mysqli->connect_errno){
+    $error_message[] = 'データの読み込みに失敗しました。エラー番号'.$mysqli->connect_errno.':'.$mysqli->connect_error;
+} else {
+
+    $sql = "SELECT view_name,message,post_date FROM message ORDER BY post_date DESC";
+    $res = $mysqli->query($sql);
+
+    if( $res ){
+        $message_array = $res->fetch_all(MYSQLI_ASSOC);
     }
 
-    //ファイルを閉じる
-    fclose($file_handle);
+    $mysqli->close();
 }
 
 ?>
