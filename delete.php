@@ -1,8 +1,5 @@
 <?php
 
-//管理ページのログインパスワード
-define( 'PASSWORD','admin');
-
 //データベースの接続情報
 define( 'DB_HOST','localhost');
 define( 'DB_USER','root');
@@ -13,44 +10,69 @@ define( 'DB_NAME','board');
 date_default_timezone_set('Asia/Tokyo');
 
 //変数の初期化
-$now_date = null;
-$data = null;
-$file_handle = null;
-$split_data = null;
-$message = array();
-$message_array = array();
-$success_message = null;
+$message_id = null;
+$mysql = null;
+$sql = null;
+$res = null;
 $error_message = array();
-$clean = array();
+$message_data = array();
 
 session_start();
 
-if(!empty($_POST['btn_submit'])){
+//管理者としてログインしているか確認
+if( empty($_SESSION['admin_login']) || $_SESSION['admin_login'] !== true ){
 
-    //ログイン判定のコード
-    if( !empty($_POST['admin_password']) && $_POST['admin_password']===PASSWORD ){
-        $_SESSION['admin_login'] = true;
-    } else {
-        $error_message[] = 'ログインに失敗しました。';
-    }
+    //ログインページへリダイレクト
+    header("Location:./admin.php");
 }
 
-//データベースに接続
-$mysqli = new mysqli( DB_HOST,DB_USER,DB_PASS,DB_NAME );
+if( !empty($_GET['message_id']) && empty($_POST['message_id']) ){
 
-//接続エラーの確認
-if( $mysqli->connect_errno){
-    $error_message[] = 'データの読み込みに失敗しました。エラー番号'.$mysqli->connect_errno.':'.$mysqli->connect_error;
-} else {
+    $message_id = (int)htmlspecialchars($_GET['message_id'],ENT_QUOTES);
 
-    $sql = "SELECT id,view_name,message,post_date FROM message ORDER BY post_date DESC";
-    $res = $mysqli->query($sql);
+    //データベースに接続
+    $mysqli = new mysqli( DB_HOST,DB_USER,DB_PASS,DB_NAME );
 
-    if( $res ){
-        $message_array = $res->fetch_all(MYSQLI_ASSOC);
+    //接続エラーの確認
+    if( $mysqli->connect_errno ){
+        $error_message[] = 'データベースの接続に失敗しました。エラー番号' . $mysqli->connect_errno . ':' . $mysqli->connect_error;
+    } else {
+
+        //データの読み込み
+        $sql = "SELECT * FROM message WHERE id = $message_id";
+        $res = $mysqli->query($sql);
+
+        if( $res ){
+            $message_data = $res->fetch_assoc();
+        } else {
+
+            //データが読み込めなかったら一覧に戻る
+            header("Location:./admin.php");
+        }
+
+        $mysqli->close();
+    }
+} elseif( !empty($_POST['message_id']) ){
+
+    $message_id = (int)htmlspecialchars($_POST['message_id'],ENT_QUOTES);
+
+    //データベースに接続
+    $mysqli = new mysqli( DB_HOST, DB_USER, DB_PASS, DB_NAME );
+
+    //接続エラーの確認
+    if( $mysqli->connect_errno ){
+        $error_message[] = 'データベースの接続に失敗しました。エラー番号' . $mysqli->connect_errno . ':' . $mysqli->connect_error;
+    } else {
+        $sql = "DELETE FROM message WHERE id = $message_id";
+        $res = $mysqli->query($sql);
     }
 
     $mysqli->close();
+
+    //成功したら一覧に戻る
+    if( $res ){
+        header("Location: ./admin.php");
+    }
 }
 
 ?>
@@ -59,7 +81,7 @@ if( $mysqli->connect_errno){
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>ひと言掲示板 管理ページ</title>
+<title>ひと言掲示板 管理ページ（投稿の削除）</title>
 <style>
 /*------------------------------
  Reset Style
@@ -177,7 +199,6 @@ label {
     font-size: 86%;
 }
 input[type="text"],
-input[type="password"],
 textarea {
 	margin-bottom: 20px;
 	padding: 10px;
@@ -186,8 +207,7 @@ textarea {
     border-radius: 3px;
     background: #fff;
 }
-input[type="text"],
-input[type="password"] {
+input[type="text"] {
 	width: 200px;
 }
 textarea {
@@ -235,6 +255,28 @@ hr {
     font-size: 86%;
     line-height: 1.6em;
 }
+
+.btn_cancel {
+	display: inline-block;
+	margin-right: 10px;
+	padding: 10px 20px;
+	color: #555;
+	font-size: 86%;
+	border-radius: 5px;
+	border: 1px solid #999;
+}
+.btn_cancel:hover {
+	color: #999;
+	border-color: #999;
+	text-decoration: none;
+}
+
+.text-confirm {
+	margin-bottom: 20px;
+	font-size: 86%;
+	line-height: 1.6em;
+}
+
 /*-----------------------------------
 掲示板エリア
 -----------------------------------*/
@@ -275,11 +317,6 @@ article.reply::before {
 		line-height: 1.6em;
 		font-size: 72%;
 	}
-    .info p {
-		display: inline-block;
-		line-height: 1.6em;
-		font-size: 86%;
-	}
     article p {
         color: #555;
         font-size: 86%;
@@ -301,54 +338,27 @@ article.reply::before {
 </style>
 </head>
 <body>
-<h1>ひと言掲示板 管理ページ</h1>
-<?php if( !empty($error_message) ): ?>
+<h1>ひと言掲示板 管理ページ（投稿の削除）</h1>
+<?php if(!empty($error_message)):?>
     <ul class="error_message">
         <?php foreach($error_message as $value): ?>
             <li>・<?php echo $value; ?></li>
         <?php endforeach ;?>
     </ul>
 <?php endif; ?>
-<section>
-
-<?php if( !empty($_SESSION['admin_login']) && $_SESSION['admin_login']===true ): ?>
-
-<form method="get" action="./download.php">
-    <select name="limit">
-        <option value="">すべて</option>
-        <option value="10">10件</option>
-        <option value="30">30件</option>
-    </select>
-    <input type="submit" name="btn_download" value="ダウンロード">
-</form>
-
-<?php if( !empty($message_array) ){ ?>
-<?php foreach($message_array as $value){ ?>
-<article>
-    <div class="info">
-        <h2><?php echo $value['view_name']; ?></h2>
-        <time><?php echo date( 'Y年m月d日 H:i',strtotime($value['post_date']) ); ?></time>
-        <p>
-            <a href="edit.php?message_id=<?php echo $value['id']; ?>">編集</a>
-            <a href="delete.php?message_id=<?php echo $value['id']; ?>">削除</a>
-        </p>
-    </div>
-    <p><?php echo nl2br( $value['message'] ); ?></p>
-</article>
-<?php }?>
-<?php }?>
-
-<?php else: ?>
-
+<p class="text-confirm">以下の投稿を削除します。<br>よろしければ「削除」ボタンを押してください。</p>
 <form method="post">
     <div>
-        <label for="admin_password">ログインパスワード</label>
-        <input id="admin_password" type="password" name="admin_password" value="">
+        <label for="view_name">表示名</label>
+        <input id="view_name" type="text" name="view_name" value="<?php if( !empty($message_data['view_name']) ){ echo $message_data['view_name']; } ?>" disabled>
     </div>
-    <input type="submit" name="btn_submit" value="ログイン">
+    <div>
+        <label for="message">ひと言メッセージ</label>
+        <textarea id="message" name="message" disabled><?php if( !empty($message_data['message']) ){ echo $message_data['message']; }?></textarea>
+    </div>
+    <a class="btn_cancel" href="admin.php">キャンセル</a>
+    <input type="submit" name="btn_submit" value="削除">
+    <input type="hidden" name="message_id" value="<?php echo $message_data['id']; ?>">
 </form>
-
-<?php endif; ?>
-</section>
 </body>
 </html>
