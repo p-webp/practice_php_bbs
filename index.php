@@ -39,7 +39,9 @@ if(!empty($_POST['btn_submit'])){
 
     if(empty($error_message)){
 
+        /*
         if($file_handle = fopen(FILENAME,"a")){
+
 
             //書き込み日時を取得
             $now_date = date("Y-m-d H:i:s");
@@ -56,6 +58,36 @@ if(!empty($_POST['btn_submit'])){
             //書き込み成功時のメッセージ
             //ファイルへの書き込みがあった場合のみ値が代入される
             $success_message = 'メッセージを書き込みました。';
+        }
+        */
+
+        //データベースに接続
+        $mysqli = new mysqli('localhost','root','root','board');
+
+        if( $mysqli->connect_errno ){
+            $error_message[] = '書き込みに失敗しました。エラー番号'.$mysqli->connect_errno.':'.$mysqli->connect_error;
+        } else {
+
+            //文字コード設定
+            $mysqli->set_charset('utf8');
+
+            //書き込み日時を取得
+            $now_date = date("Y-m-d H:i:s");
+
+            //データを登録するSQL作成
+            $sql = "INSERT INTO message (view_name, message, post_date) VALUES('$clean[view_name]','$clean[message]','$now_date')";
+
+            //データを登録
+            $res = $mysqli->query($sql);
+
+            if( $res ){
+                $success_message = 'メッセージを書き込みました。';
+            } else {
+                $error_message[] = '書き込みに失敗しました。';
+            }
+
+            //データベースの接続を閉じる
+            $mysqli->close();
         }
     }
 }
@@ -341,8 +373,8 @@ article.reply::before {
 </form>
 <hr>
 <section>
-<?php if(!empty($message_array)){ ?>
-<?php foreach($message_array as $value){ ?>
+<?php if(!empty($message_array)){?>
+<?php foreach($message_array as $value){?>
 <article>
     <div class="info">
         <h2><?php echo $value['view_name']; ?></h2>
@@ -350,8 +382,8 @@ article.reply::before {
     </div>
     <p><?php echo $value['message']; ?></p>
 </article>
-<?php } ?>
-<?php } ?>
+<?php }?>
+<?php }?>
 </section>
 </body>
 </html>
