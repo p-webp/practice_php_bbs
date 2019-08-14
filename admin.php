@@ -248,6 +248,22 @@ hr {
     font-size: 86%;
     line-height: 1.6em;
 }
+
+.btn_cancel {
+	display: inline-block;
+	margin-right: 10px;
+	padding: 10px 20px;
+	color: #555;
+	font-size: 86%;
+	border-radius: 5px;
+	border: 1px solid #999;
+}
+.btn_cancel:hover {
+	color: #999;
+	border-color: #999;
+	text-decoration: none;
+}
+
 /*-----------------------------------
 掲示板エリア
 -----------------------------------*/
@@ -363,6 +379,7 @@ article.reply::before {
         <input id="admin_password" type="password" name="admin_password" value="">
     </div>
     <input type="submit" name="btn_submit" value="ログイン">
+    <a class="btn_cancel" href="index.php">戻る</a>
 </form>
 
 <?php endif; ?>
