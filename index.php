@@ -6,7 +6,6 @@ define( 'DB_USER','root');
 define( 'DB_PASS','root');
 define( 'DB_NAME','board');
 
-
 //タイムゾーン設定
 date_default_timezone_set('Asia/Tokyo');
 
@@ -27,6 +26,8 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 
 }
 
+session_start();
+
 if(!empty($_POST['btn_submit'])){
 
     //表示名の入力チェック
@@ -35,6 +36,9 @@ if(!empty($_POST['btn_submit'])){
     } else {
         $clean['view_name'] = htmlspecialchars($_POST['view_name'],ENT_QUOTES);
         $clean['view_name'] = preg_replace('/\\r\\n|\\n|\\r/', '', $clean['view_name']);
+
+        //セッションに表示名を保存
+        $_SESSION['view_name'] = $clean['view_name'];
     }
 
     //メッセージの入力チェック
@@ -351,7 +355,7 @@ article.reply::before {
 <form method="post">
     <div>
         <label for="view_name">表示名</label>
-        <input id="view_name" type="text" name="view_name" value="">
+        <input id="view_name" type="text" name="view_name" value="<?php if( !empty($_SESSION['view_name'])){ echo $_SESSION['view_name'];}?>">
     </div>
     <div>
         <label for="message">ひと言メッセージ</label>
