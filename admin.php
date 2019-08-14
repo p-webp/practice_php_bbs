@@ -25,6 +25,10 @@ $clean = array();
 
 session_start();
 
+if( !empty( $_GET['btn_logout'] )){
+    unset($_SESSION['admin_login']);
+}
+
 if(!empty($_POST['btn_submit'])){
 
     //ログイン判定のコード
@@ -211,6 +215,15 @@ input[type=submit]:hover,
 button:hover {
     background-color: #2392d8;
 }
+
+input[name=btn_logout] {
+	margin-top: 40px;
+	background-color: #666;
+}
+input[name=btn_logout]:hover {
+	background-color: #777;
+}
+
 hr {
 	margin: 20px 0;
 	padding: 0;
@@ -337,6 +350,10 @@ article.reply::before {
 </article>
 <?php }?>
 <?php }?>
+
+<form method="get" action="">
+    <input type="submit" name="btn_logout" value="ログアウト">
+</form>
 
 <?php else: ?>
 
