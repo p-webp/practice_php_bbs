@@ -3,6 +3,8 @@
 投稿者名とメッセージを書き込むことができます。
 管理者はメッセージの編集・削除、メッセージの一括ダウンロードが可能です。
 
+<img width="1142" alt="スクリーンショット 2019-09-14 11 08 33" src="https://user-images.githubusercontent.com/48795394/64902319-38794200-d6e0-11e9-9be1-239ed3ab2fe2.png">
+
 # Dependency
 
 
