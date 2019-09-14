@@ -38,7 +38,7 @@ mail : xxx.k.xxx0810@gmail.com
 
 Wanedly:https://www.wantedly.com/users/96915344
 
-##　参考
+## 参考
 
 石戸 康平様が運営している「GRAYCODE」というサイトのPHPプログラミングワークショップに沿って作成しました。
 
